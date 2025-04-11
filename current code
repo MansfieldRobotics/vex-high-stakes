@@ -10,27 +10,117 @@ from vex import *
 from vex import Optical
 
 
+
+
+i = 0
+
+
+
+
 flip = False
+bFlip = False
+bbFlip = True
+tFlip = False
+iFlip = False
+previous_stateTyrell = False
+previous_stateTyrellB = False
+previous_stateTyrellBB = False
+previous_stateTyrellT = False
+previous_stateTyrellI = False
+
+
+
+
+
+
 
 
 # Brain should be defined by default
 brain = Brain()
-lMotor1 = Motor(Ports.PORT11, GearSetting.RATIO_36_1, flip)
-rMotor1 = Motor(Ports.PORT6, GearSetting.RATIO_36_1, not flip)
+lMotor1 = Motor(Ports.PORT17, GearSetting.RATIO_36_1, flip)
+rMotor1 = Motor(Ports.PORT19, GearSetting.RATIO_36_1, not flip)
 lMotor2 = Motor(Ports.PORT13, GearSetting.RATIO_36_1, flip)
-rMotor2 = Motor(Ports.PORT10, GearSetting.RATIO_36_1, not flip)
+rMotor2 = Motor(Ports.PORT20, GearSetting.RATIO_36_1, not flip)
 lMotor = MotorGroup(lMotor1,lMotor2)
 rMotor = MotorGroup(rMotor1,rMotor2)
-bMotor = Motor(Ports.PORT13)
+bMotor = Motor(Ports.PORT10, GearSetting.RATIO_36_1)
+bMotor.set_reversed(True)
+tMotor = Motor(Ports.PORT9,GearSetting.RATIO_6_1)
 dTrain = DriveTrain(lMotor, rMotor, wheelTravel=300, trackWidth=300, wheelBase=170, units=INCHES)
+iMotor = Motor(Ports.PORT18, GearSetting.RATIO_6_1)
 cont = Controller()
 
 
-previous_stateTyrell = False
 
 
 
 
+
+
+def funcFlip():
+ global flip
+ global previous_stateTyrell
+ current_stateTyrell = cont.buttonL1.pressing()
+ # Check if the state has changed
+ if current_stateTyrell != previous_stateTyrell:
+     if current_stateTyrell:
+         flip = not flip
+     # Update the previous state
+     previous_stateTyrell = current_stateTyrell
+
+
+
+
+# I need this comment to not error out because of indentation.
+def funcbFlip():
+ global bFlip
+ global previous_stateTyrellB
+ current_stateTyrell = cont.buttonR1.pressing()
+ # Check if the state has changed
+ if current_stateTyrell != previous_stateTyrellB:
+     if current_stateTyrell:
+         bFlip = not bFlip
+     # Update the previous state
+     previous_stateTyrellB = current_stateTyrell
+
+
+# I need this comment to not error out because of indentation.
+def funcbbFlip():
+ global bbFlip
+ global previous_stateTyrellBB
+ current_stateTyrell = cont.buttonR2.pressing()
+ # Check if the state has changed
+ if current_stateTyrell != previous_stateTyrellBB:
+     if current_stateTyrell:
+         bbFlip = not bbFlip
+     # Update the previous state
+     previous_stateTyrellBB = current_stateTyrell
+
+
+# I need this comment to not error out because of indentation.
+def functFlip():
+ global tFlip
+ global previous_stateTyrellT
+ current_stateTyrell = cont.buttonL2.pressing()
+ # Check if the state has changed
+ if current_stateTyrell != previous_stateTyrellT:
+     if current_stateTyrell:
+         tFlip = not tFlip
+     # Update the previous state
+     previous_stateTyrellT = current_stateTyrell
+
+
+# I need this comment to not error out because of indentation.
+def funciFlip():
+ global iFlip
+ global previous_stateTyrellI
+ current_stateTyrell = cont.buttonA.pressing()
+ # Check if the state has changed
+ if current_stateTyrell != previous_stateTyrellI:
+     if current_stateTyrell:
+         iFlip = not iFlip
+     # Update the previous state
+     previous_stateTyrellI = current_stateTyrell
 
 
 
@@ -38,17 +128,61 @@ previous_stateTyrell = False
 
 
 # Initialize inertial sensor
-inertial = Inertial(Ports.PORT6)  # Make sure to use the correct port
+inertial = Inertial(Ports.PORT15)  # Make sure to use the correct port
 inertial.calibrate()
 wait(2, SECONDS)  # Allow time for calibration
 
 
 
 
+def rotatePID(direction, deg, kp=1, ki=0, kd=0):
+      target_angle = deg if direction == 'left' else -deg
+      lasterror = 0
+      while True:
+          current_angle = inertial.heading(DEGREES)
+          error = target_angle - current_angle
+          PID_output = PIDMath(error, lasterror, kp, ki, kd)
+          lasterror = error
+          final_velocity = apply_deadband(PID_output)
+          lMotor.set_velocity(final_velocity if direction == 'left' else -final_velocity, PERCENT)
+          rMotor.set_velocity(-final_velocity if direction == 'left' else final_velocity, PERCENT)
+          lMotor.spin(FORWARD)
+          rMotor.spin(FORWARD)
+          if abs(error) < 1:  # Stop condition when close to target
+              lMotor.stop()
+              rMotor.stop()
+              break
+          wait(10, MSEC)
+
+
+
+
+
+
+
+
+
+
+
+
 def apply_deadband(value, threshold=5):
-  if abs(value) < threshold:
-      return 0
-  return value
+ if abs(value) < threshold:
+     return 0
+ return value
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -56,18 +190,52 @@ def apply_deadband(value, threshold=5):
 
 
 def square_input(value):
-  return value * value if value > 0 else -(value * value)
+ return value * value if value > 0 else -(value * value)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 def PIDMath(error, lasterror, kp=1.0, ki=0.0, kd=0.0):
-  # PID math function that we use for PID control
-  Proportional = error * kp  # Proportional value
-  Integral = (error + lasterror) * ki  # Integral math
-  Derivative = (error - lasterror) * kd  # Derivative Math
-  PID = Proportional + Integral + Derivative  # Final PID value calculation
-  return PID  # return the final value
+ # PID math function that we use for PID control
+ Proportional = error * kp  # Proportional value
+ Integral = (error + lasterror) * ki  # Integral math
+ Derivative = (error - lasterror) * kd  # Derivative Math
+ PID = Proportional + Integral + Derivative  # Final PID value calculation
+ return PID  # return the final value
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -75,85 +243,164 @@ def PIDMath(error, lasterror, kp=1.0, ki=0.0, kd=0.0):
 
 
 def calculate_motor_velocities(forward_velocity, turn_velocity, lasterror_l, lasterror_r, kp=0.05, ki=0.5, kd=0.05):
-  # Calculate target velocities
-  target_velocity_l = forward_velocity - turn_velocity
-  target_velocity_r = forward_velocity + turn_velocity
+ # Calculate target velocities
+ target_velocity_l = forward_velocity - turn_velocity
+ target_velocity_r = forward_velocity + turn_velocity
 
 
-  # Read actual velocities
-  actual_velocity_l = lMotor.velocity(PERCENT)
-  actual_velocity_r = rMotor.velocity(PERCENT)
 
 
-  # Calculate errors
-  error_l = target_velocity_l - actual_velocity_l
-  error_r = target_velocity_r - actual_velocity_r
 
 
-  # Calculate PID outputs
-  PID_output_l = PIDMath(error_l, lasterror_l, kp, ki, kd)
-  PID_output_r = PIDMath(error_r, lasterror_r, kp, ki, kd)
 
 
-  # Update last errors
-  lasterror_l = error_l
-  lasterror_r = error_r
+ # Read actual velocities
+ actual_velocity_l = lMotor.velocity(PERCENT)
+ actual_velocity_r = rMotor.velocity(PERCENT)
 
 
-  # Apply deadband after PID calculation
-  final_velocity_l = apply_deadband(target_velocity_l + PID_output_l)
-  final_velocity_r = apply_deadband(target_velocity_r + PID_output_r)
 
 
-  return final_velocity_l, final_velocity_r, lasterror_l, lasterror_r
+
+
+
+
+ # Calculate errors
+ error_l = target_velocity_l - actual_velocity_l
+ error_r = target_velocity_r - actual_velocity_r
+
+
+
+
+
+
+
+
+ # Calculate PID outputs
+ PID_output_l = PIDMath(error_l, lasterror_l, kp, ki, kd)
+ PID_output_r = PIDMath(error_r, lasterror_r, kp, ki, kd)
+
+
+
+
+
+
+
+
+ # Update last errors
+ lasterror_l = error_l
+ lasterror_r = error_r
+
+
+
+
+
+
+
+
+ # Apply deadband after PID calculation
+ final_velocity_l = apply_deadband(target_velocity_l + PID_output_l)
+ final_velocity_r = apply_deadband(target_velocity_r + PID_output_r)
+
+
+
+
+
+
+
+
+ return final_velocity_l, final_velocity_r, lasterror_l, lasterror_r
+
+
+
+
+
+
 
 
 def userDrive():
-
-
-    # Forward and backward movement with axis 4
-    forward_velocity = apply_deadband(square_input(cont.axis3.position()))
-    # Turning movement with axis 3
-    turn_velocity = apply_deadband(square_input(cont.axis1.position()))
-
-
-    global previous_stateTyrell
-    global flip
-    # Get the current state
-    current_stateTyrell = cont.buttonR1.pressing()
-    # Check if the state has changed
-    if current_stateTyrell != previous_stateTyrell:
-        if current_stateTyrell:
-            flip = not flip
-   
-        # Update the previous state
-        previous_stateTyrell = current_stateTyrell
-
-
-   
-    if flip:
-        #turn_velocity = - turn_velocity
-        forward_velocity = - forward_velocity
+   global i
+   i += 1
+     
+   # Forward and backward movement with axis 4
+   forward_velocity = apply_deadband(square_input(cont.axis3.position()))
+   # Turning movement with axis 3
+   turn_velocity = apply_deadband(square_input(cont.axis1.position()))
 
 
 
 
-    lasterror_l = 0
-    lasterror_r = 0
 
 
-    # Calculate motor velocities
-    final_velocity_l, final_velocity_r, lasterror_l, lasterror_r = calculate_motor_velocities(forward_velocity, turn_velocity, lasterror_l, lasterror_r, .75, .1, .1)
 
 
-    # Set motor velocities
-    lMotor.set_velocity(final_velocity_l, PERCENT)
-    rMotor.set_velocity(final_velocity_r, PERCENT)
 
 
-    # Spin motors
-    lMotor.spin(FORWARD)
-    rMotor.spin(FORWARD)
+
+
+   global flip
+   global bFlip
+   global bbFlip
+   global tFlip
+
+
+
+
+   brain.screen.print(flip)
+
+
+
+
+   funcFlip()
+   funcbFlip()
+   funcbbFlip()
+   functFlip()
+   funciFlip()
+
+
+
+
+
+
+
+
+   if tFlip:
+      tMotor.spin_to_position(775, velocity = 600, wait = False)
+   else: tMotor.spin_to_position(0, velocity = 600, wait = False)
+
+
+   if iFlip:iMotor.spin(REVERSE, 1000, RPM)
+   else: iMotor.stop()
+     
+   if flip:
+       forward_velocity = - forward_velocity
+
+
+   if bFlip:
+     bMotor.spin(REVERSE, 100, PERCENT)
+   else:
+     bMotor.spin(FORWARD, 100, PERCENT)
+
+
+   if bbFlip: bMotor.stop()
+
+
+   lasterror_l = 0
+   lasterror_r = 0
+
+
+   # Calculate motor velocities
+   final_velocity_l, final_velocity_r, lasterror_l, lasterror_r = calculate_motor_velocities(forward_velocity, turn_velocity, lasterror_l, lasterror_r, .75, .1, .1)
+
+
+   # Set motor velocities
+   lMotor.set_velocity(final_velocity_l, PERCENT)
+   rMotor.set_velocity(final_velocity_r, PERCENT)
+
+
+   # Spin motors
+   lMotor.spin(FORWARD)
+   rMotor.spin(FORWARD)
 
 
 
@@ -161,31 +408,36 @@ def userDrive():
 
 
 def pre_autonomous():
-    # actions to do when the program starts
-    brain.screen.clear_screen()
-    brain.screen.print("pre auton code")
-    wait(1, SECONDS)
+   # actions to do when the program starts
+   brain.screen.clear_screen()
+   brain.screen.print("pre auton code")
+   wait(1, SECONDS)
+
+
 
 
 def autonomous():
-    brain.screen.clear_screen()
-    brain.screen.print("autonomous code")
-    # place automonous code here
+   brain.screen.clear_screen()
+   brain.screen.print("autonomous code")
+   # place automonous code here
+   dTrain.drive_for(REVERSE,45,DistanceUnits.IN)
+   tMotor.spin_to_position(0, wait = False)
+
+
 
 
 def user_control():
-    brain.screen.clear_screen()
-    # place driver control in this while loop
-    while True:
-        userDrive()
+   brain.screen.clear_screen()
+   # place driver control in this while loop
+   while True:
+       userDrive()
+       wait(10, MSEC)
 
 
-        wait(10, MSEC)
 
 
 # create competition instance
 comp = Competition(user_control, autonomous)
 pre_autonomous()
-
 
 
