@@ -10,28 +10,7 @@ from vex import *
 from vex import Optical
 
 
-
-
-i = 0
-
-
-
-
 flip = False
-bFlip = False
-bbFlip = True
-tFlip = False
-iFlip = False
-previous_stateTyrell = False
-previous_stateTyrellB = False
-previous_stateTyrellBB = False
-previous_stateTyrellT = False
-previous_stateTyrellI = False
-
-
-
-
-
 
 
 
@@ -43,86 +22,8 @@ lMotor2 = Motor(Ports.PORT13, GearSetting.RATIO_36_1, flip)
 rMotor2 = Motor(Ports.PORT20, GearSetting.RATIO_36_1, not flip)
 lMotor = MotorGroup(lMotor1,lMotor2)
 rMotor = MotorGroup(rMotor1,rMotor2)
-bMotor = Motor(Ports.PORT10, GearSetting.RATIO_36_1)
-bMotor.set_reversed(True)
-tMotor = Motor(Ports.PORT9,GearSetting.RATIO_6_1)
 dTrain = DriveTrain(lMotor, rMotor, wheelTravel=300, trackWidth=300, wheelBase=170, units=INCHES)
-iMotor = Motor(Ports.PORT18, GearSetting.RATIO_6_1)
 cont = Controller()
-
-
-
-
-
-
-
-
-def funcFlip():
- global flip
- global previous_stateTyrell
- current_stateTyrell = cont.buttonL1.pressing()
- # Check if the state has changed
- if current_stateTyrell != previous_stateTyrell:
-     if current_stateTyrell:
-         flip = not flip
-     # Update the previous state
-     previous_stateTyrell = current_stateTyrell
-
-
-
-
-# I need this comment to not error out because of indentation.
-def funcbFlip():
- global bFlip
- global previous_stateTyrellB
- current_stateTyrell = cont.buttonR1.pressing()
- # Check if the state has changed
- if current_stateTyrell != previous_stateTyrellB:
-     if current_stateTyrell:
-         bFlip = not bFlip
-     # Update the previous state
-     previous_stateTyrellB = current_stateTyrell
-
-
-# I need this comment to not error out because of indentation.
-def funcbbFlip():
- global bbFlip
- global previous_stateTyrellBB
- current_stateTyrell = cont.buttonR2.pressing()
- # Check if the state has changed
- if current_stateTyrell != previous_stateTyrellBB:
-     if current_stateTyrell:
-         bbFlip = not bbFlip
-     # Update the previous state
-     previous_stateTyrellBB = current_stateTyrell
-
-
-# I need this comment to not error out because of indentation.
-def functFlip():
- global tFlip
- global previous_stateTyrellT
- current_stateTyrell = cont.buttonL2.pressing()
- # Check if the state has changed
- if current_stateTyrell != previous_stateTyrellT:
-     if current_stateTyrell:
-         tFlip = not tFlip
-     # Update the previous state
-     previous_stateTyrellT = current_stateTyrell
-
-
-# I need this comment to not error out because of indentation.
-def funciFlip():
- global iFlip
- global previous_stateTyrellI
- current_stateTyrell = cont.buttonA.pressing()
- # Check if the state has changed
- if current_stateTyrell != previous_stateTyrellI:
-     if current_stateTyrell:
-         iFlip = not iFlip
-     # Update the previous state
-     previous_stateTyrellI = current_stateTyrell
-
-
 
 
 
@@ -158,30 +59,10 @@ def rotatePID(direction, deg, kp=1, ki=0, kd=0):
 
 
 
-
-
-
-
-
-
-
 def apply_deadband(value, threshold=5):
  if abs(value) < threshold:
      return 0
  return value
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -197,16 +78,6 @@ def square_input(value):
 
 
 
-
-
-
-
-
-
-
-
-
-
 def PIDMath(error, lasterror, kp=1.0, ki=0.0, kd=0.0):
  # PID math function that we use for PID control
  Proportional = error * kp  # Proportional value
@@ -214,28 +85,6 @@ def PIDMath(error, lasterror, kp=1.0, ki=0.0, kd=0.0):
  Derivative = (error - lasterror) * kd  # Derivative Math
  PID = Proportional + Integral + Derivative  # Final PID value calculation
  return PID  # return the final value
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -319,70 +168,13 @@ def calculate_motor_velocities(forward_velocity, turn_velocity, lasterror_l, las
 
 
 def userDrive():
-   global i
-   i += 1
+
      
    # Forward and backward movement with axis 4
    forward_velocity = apply_deadband(square_input(cont.axis3.position()))
    # Turning movement with axis 3
    turn_velocity = apply_deadband(square_input(cont.axis1.position()))
 
-
-
-
-
-
-
-
-
-
-
-
-   global flip
-   global bFlip
-   global bbFlip
-   global tFlip
-
-
-
-
-   brain.screen.print(flip)
-
-
-
-
-   funcFlip()
-   funcbFlip()
-   funcbbFlip()
-   functFlip()
-   funciFlip()
-
-
-
-
-
-
-
-
-   if tFlip:
-      tMotor.spin_to_position(775, velocity = 600, wait = False)
-   else: tMotor.spin_to_position(0, velocity = 600, wait = False)
-
-
-   if iFlip:iMotor.spin(REVERSE, 1000, RPM)
-   else: iMotor.stop()
-     
-   if flip:
-       forward_velocity = - forward_velocity
-
-
-   if bFlip:
-     bMotor.spin(REVERSE, 100, PERCENT)
-   else:
-     bMotor.spin(FORWARD, 100, PERCENT)
-
-
-   if bbFlip: bMotor.stop()
 
 
    lasterror_l = 0
@@ -421,7 +213,7 @@ def autonomous():
    brain.screen.print("autonomous code")
    # place automonous code here
    dTrain.drive_for(REVERSE,45,DistanceUnits.IN)
-   tMotor.spin_to_position(0, wait = False)
+
 
 
 
